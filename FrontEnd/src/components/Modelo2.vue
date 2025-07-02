@@ -32,6 +32,10 @@
               {{ processedModel.vertices.length > 0 ? '✓ Redistribuido' : (isProcessing ? '⏳ Calculando diagramas...' : '⏸️ Pendiente') }}
             </span>
           </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">🔧 Factor Reducción:</span>
+            <span class="text-purple-400">{{ reductionFactor.toFixed(2) }}</span>
+          </div>
         </div>
         
         <div v-else class="text-center py-8">
@@ -56,6 +60,25 @@
         </h3>
         
         <div class="space-y-4">
+          <!-- Factor de Reducción - MOVIDO ARRIBA -->
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">
+              Factor de Reducción: {{ reductionFactor.toFixed(2) }}
+            </label>
+            <input 
+              v-model.number="reductionFactor" 
+              type="range" 
+              min="0.1" 
+              max="0.9" 
+              step="0.1"
+              class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer slider"
+            >
+            <div class="flex justify-between text-xs text-slate-500 mt-1">
+              <span>Máxima reducción</span>
+              <span>Mínima reducción</span>
+            </div>
+          </div>
+
           <!-- Modo Wireframe -->
           <div class="flex items-center justify-between">
             <label class="text-sm font-medium text-gray-300 flex items-center">
@@ -123,10 +146,10 @@
           <div class="bg-slate-700 rounded-lg p-3">
             <h4 class="font-semibold text-white mb-2 text-xs">Proceso Automático:</h4>
             <ul class="space-y-1 text-xs">
-              <li>• Genera sitios de Voronoi distribuidos</li>
-              <li>• Calcula celdas de Voronoi</li>
+              <li>• Selecciona tu archivo .obj</li>
+              <li>• Se carga y procesa automáticamente</li>
+              <li>• Para cambiar factor, vuelve a seleccionar</li>
               <li>• Redistribuye vértices uniformemente</li>
-              <li>• Optimiza ángulos de triángulos</li>
             </ul>
           </div>
 
@@ -160,7 +183,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
             </svg>
             <p class="text-lg font-medium">Arrastra archivo .obj aquí</p>
-            <p class="text-sm mt-2">Redistribución automática con Voronoi</p>
+            <p class="text-sm mt-2">Redistribución manual con Voronoi</p>
           </div>
         </div>
       </div>
@@ -205,7 +228,7 @@
             <svg v-else class="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
             </svg>
-            <p class="text-lg font-medium">{{ isProcessing ? 'Aplicando Voronoi...' : 'Esperando redistribución automática' }}</p>
+            <p class="text-lg font-medium">{{ isProcessing ? 'Aplicando Voronoi...' : 'Haz clic en "Seleccionar" para procesar' }}</p>
           </div>
         </div>
       </div>
@@ -235,10 +258,23 @@
               </div>
             </div>
             <div>
-              <div class="text-slate-400 text-xs">Procesamiento</div>
-              <div class="font-mono text-purple-400 text-sm">Automático</div>
+              <div class="text-slate-400 text-xs">Factor Aplicado</div>
+              <div class="font-mono text-purple-400 text-sm">{{ reductionFactor.toFixed(2) }}</div>
             </div>
           </div>
+        </div>
+
+        <!-- Botón de descarga -->
+        <div class="mt-3 pt-3 border-t border-slate-600">
+          <button 
+            @click="downloadProcessedModel"
+            class="w-full py-2 px-4 bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors text-white font-medium text-sm flex items-center justify-center"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-4-4m4 4l4-4m-4-4V3"></path>
+            </svg>
+            Descargar Modelo Voronoi
+          </button>
         </div>
       </div>
 
@@ -267,6 +303,7 @@ const mensaje = ref('')
 // Controles
 const wireframeMode = ref(false)
 const autoRotate = ref(false)
+const reductionFactor = ref(0.3) // 30% de reducción por defecto
 
 const originalModel = ref({
   name: '',
@@ -280,11 +317,32 @@ const processedModel = ref({
   faces: []
 })
 
+// Variable para almacenar el contenido OBJ original
+let originalObjContent = ''
+const processedObjContent = ref('')
+
 // Variables Three.js
 let originalScene, originalCamera, originalRenderer, originalControls
 let processedScene, processedCamera, processedRenderer, processedControls
 let objLoader
 let animationId
+
+function downloadProcessedModel() {
+  if (!processedObjContent.value || !originalModel.value.name) {
+    alert('No hay modelo procesado para descargar')
+    return
+  }
+  
+  const blob = new Blob([processedObjContent.value], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `Voronoi_${originalModel.value.name}`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
 
 onMounted(async () => {
   await nextTick()
@@ -301,20 +359,17 @@ onUnmounted(() => {
   if (processedRenderer) processedRenderer.dispose()
 })
 
-// ✅ FUNCIÓN PARA LIMPIAR TODOS LOS ESTADOS
 function clearAllStates() {
-  // Limpiar estados
   originalModel.value = { name: '', vertices: [], faces: [] }
   processedModel.value = { name: '', vertices: [], faces: [] }
   mensaje.value = ''
   isProcessing.value = false
+  originalObjContent = ''
   
-  // Limpiar escenas
   if (originalScene) {
     while(originalScene.children.length > 0) {
       originalScene.remove(originalScene.children[0])
     }
-    // Restaurar iluminación
     const originalLight = new THREE.DirectionalLight(0xffffff, 1)
     originalLight.position.set(1, 1, 1).normalize()
     originalScene.add(originalLight)
@@ -324,7 +379,6 @@ function clearAllStates() {
     while(processedScene.children.length > 0) {
       processedScene.remove(processedScene.children[0])
     }
-    // Restaurar iluminación
     const processedLight = new THREE.DirectionalLight(0xffffff, 1)
     processedLight.position.set(1, 1, 1).normalize()
     processedScene.add(processedLight)
@@ -334,7 +388,6 @@ function clearAllStates() {
 const initThreeJS = () => {
   objLoader = new OBJLoader()
   
-  // Configurar escena original
   if (originalContainer.value) {
     const width = originalContainer.value.clientWidth
     const height = originalContainer.value.clientHeight
@@ -360,7 +413,6 @@ const initThreeJS = () => {
     originalControls.autoRotateSpeed = 2.0
   }
   
-  // Configurar escena procesada
   if (processedContainer.value) {
     const width = processedContainer.value.clientWidth
     const height = processedContainer.value.clientHeight
@@ -407,11 +459,11 @@ const loadObjFile = async (event) => {
   const file = event.target.files[0]
   if (!file) return
   
-  // ✅ LIMPIAR TODO ANTES DE CARGAR NUEVO MODELO
   clearAllStates()
   
   try {
     const text = await file.text()
+    originalObjContent = text // Guardar contenido original
     const parsed = parseObjFile(text)
     
     originalModel.value = {
@@ -423,23 +475,20 @@ const loadObjFile = async (event) => {
     // Cargar en Three.js
     const originalObject = objLoader.parse(text)
     
-    // Limpiar escena original
     while(originalScene.children.length > 0) {
       originalScene.remove(originalScene.children[0])
     }
     
-    // Restaurar luz
     const originalLight = new THREE.DirectionalLight(0xffffff, 1)
     originalLight.position.set(1, 1, 1).normalize()
     originalScene.add(originalLight)
     
-    // ✅ Aplicar material SÓLIDO (sin transparencia)
     const material = new THREE.MeshLambertMaterial({ 
       color: 0x61dafb,
       wireframe: wireframeMode.value,
-      transparent: false,  // ✅ Sin transparencia
-      opacity: 1.0,        // ✅ Completamente opaco
-      side: THREE.DoubleSide // ✅ Renderizar ambos lados
+      transparent: false,
+      opacity: 1.0,
+      side: THREE.DoubleSide
     })
     originalObject.traverse(child => {
       if (child.isMesh) {
@@ -450,11 +499,27 @@ const loadObjFile = async (event) => {
     
     originalScene.add(originalObject)
     
-    // ✅ Render inmediato
+    // Ajustar cámara automáticamente
+    const boundingBox = new THREE.Box3().setFromObject(originalObject)
+    const center = boundingBox.getCenter(new THREE.Vector3())
+    const size = boundingBox.getSize(new THREE.Vector3())
+
+    const maxDim = Math.max(size.x, size.y, size.z)
+    const fov = originalCamera.fov * (Math.PI / 180)
+    const distance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.2
+
+    originalCamera.position.set(0, 0, distance)
+    originalCamera.lookAt(center)
+
+    originalControls.target.copy(center)
+    originalControls.minDistance = distance * 0.5
+    originalControls.maxDistance = distance * 3
+    originalControls.update()
+    
     originalRenderer.render(originalScene, originalCamera)
     
-    // Procesar automáticamente
-    await processModel(text)
+    // Procesar automáticamente después de cargar
+    await processModel(originalObjContent)
     
   } catch (error) {
     console.error('Error cargando archivo OBJ:', error)
@@ -462,9 +527,27 @@ const loadObjFile = async (event) => {
   }
 }
 
+// Nueva función para seleccionar archivo y procesar
+// ELIMINAR ESTA FUNCIÓN COMPLETA
+// const selectAndProcess = async () => {
+//   // Si no hay modelo cargado, abrir selector de archivo
+//   if (originalModel.value.vertices.length === 0) {
+//     document.querySelector('input[type="file"]').click()
+//     return
+//   }
+
+//   // Si ya hay modelo cargado, procesar con el factor actual
+//   if (originalObjContent) {
+//     await processModel(originalObjContent)
+//   }
+// }
+
 const processModel = async (objContent) => {
   isProcessing.value = true
   mensaje.value = 'Calculando diagramas de Voronoi...'
+  
+  const originalVertexCount = originalModel.value.vertices.length
+  const targetVertices = Math.round(originalVertexCount * (1 - reductionFactor.value)) // Aplicar reducción real
   
   try {
     const res = await fetch('http://localhost:3001/api/voronoi', {
@@ -472,11 +555,13 @@ const processModel = async (objContent) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         obj: objContent,
-        nombre: originalModel.value?.name || 'modelo'
+        nombre: originalModel.value?.name || 'modelo',
+        targetVertices: targetVertices
       })
     })
 
     const data = await res.json()
+    processedObjContent.value = data.obj
     mensaje.value = data.mensaje || 'Redistribución Voronoi completada'
     
     if (data.obj) {
@@ -487,26 +572,22 @@ const processModel = async (objContent) => {
         faces: parsed.faces
       }
       
-      // Cargar en Three.js
       const processedObject = objLoader.parse(data.obj)
       
-      // Limpiar escena procesada
       while (processedScene.children.length > 0) {
         processedScene.remove(processedScene.children[0])
       }
       
-      // Restaurar luz
       const processedLight = new THREE.DirectionalLight(0xffffff, 1)
       processedLight.position.set(1, 1, 1).normalize()
       processedScene.add(processedLight)
       
-      // ✅ Aplicar material SÓLIDO (sin transparencia)
       const material = new THREE.MeshLambertMaterial({ 
         color: 0x8b5cf6,
         wireframe: wireframeMode.value,
-        transparent: false,  // ✅ Sin transparencia
-        opacity: 1.0,        // ✅ Completamente opaco
-        side: THREE.DoubleSide // ✅ Renderizar ambos lados
+        transparent: false,
+        opacity: 1.0,
+        side: THREE.DoubleSide
       })
 
       processedObject.traverse(child => {
@@ -518,7 +599,22 @@ const processModel = async (objContent) => {
       
       processedScene.add(processedObject)
       
-      // ✅ Render inmediato
+      const boundingBox = new THREE.Box3().setFromObject(processedObject)
+      const center = boundingBox.getCenter(new THREE.Vector3())
+      const size = boundingBox.getSize(new THREE.Vector3())
+
+      const maxDim = Math.max(size.x, size.y, size.z)
+      const fov = processedCamera.fov * (Math.PI / 180)
+      const distance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.2
+
+      processedCamera.position.set(0, 0, distance)
+      processedCamera.lookAt(center)
+
+      processedControls.target.copy(center)
+      processedControls.minDistance = distance * 0.5
+      processedControls.maxDistance = distance * 3
+      processedControls.update()
+      
       processedRenderer.render(processedScene, processedCamera)
     }
     
@@ -566,7 +662,6 @@ const onDrop = (event) => {
     return
   }
 
-  // ✅ LIMPIAR TODO ANTES DE CARGAR NUEVO MODELO
   clearAllStates()
 
   const fakeEvent = { target: { files: [file] } }
@@ -574,23 +669,44 @@ const onDrop = (event) => {
 }
 
 function resetCameras() {
-  if (originalControls) {
-    originalCamera.position.set(4, 4, 4)
-    originalControls.target.set(0, 0, 0)
-    originalControls.update()
-    originalRenderer.render(originalScene, originalCamera)
+  if (originalModel.value.vertices.length > 0 && originalScene.children.length > 0) {
+    const meshObject = originalScene.children.find(child => child.type === 'Group' || child.type === 'Mesh')
+    if (meshObject) {
+      const boundingBox = new THREE.Box3().setFromObject(meshObject)
+      const center = boundingBox.getCenter(new THREE.Vector3())
+      const size = boundingBox.getSize(new THREE.Vector3())
+      const maxDim = Math.max(size.x, size.y, size.z)
+      const fov = originalCamera.fov * (Math.PI / 180)
+      const distance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.2
+      
+      originalCamera.position.set(0, 0, distance)
+      originalCamera.lookAt(center)
+      originalControls.target.copy(center)
+      originalControls.update()
+      originalRenderer.render(originalScene, originalCamera)
+    }
   }
   
-  if (processedControls) {
-    processedCamera.position.set(4, 4, 4)
-    processedControls.target.set(0, 0, 0)
-    processedControls.update()
-    processedRenderer.render(processedScene, processedCamera)
+  if (processedModel.value.vertices.length > 0 && processedScene.children.length > 0) {
+    const meshObject = processedScene.children.find(child => child.type === 'Group' || child.type === 'Mesh')
+    if (meshObject) {
+      const boundingBox = new THREE.Box3().setFromObject(meshObject)
+      const center = boundingBox.getCenter(new THREE.Vector3())
+      const size = boundingBox.getSize(new THREE.Vector3())
+      const maxDim = Math.max(size.x, size.y, size.z)
+      const fov = processedCamera.fov * (Math.PI / 180)
+      const distance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.2
+      
+      processedCamera.position.set(0, 0, distance)
+      processedCamera.lookAt(center)
+      processedControls.target.copy(center)
+      processedControls.update()
+      processedRenderer.render(processedScene, processedCamera)
+    }
   }
 }
 
 function toggleWireframe() {
-  // Aplicar wireframe a ambos modelos
   if (originalScene) {
     originalScene.traverse(child => {
       if (child.isMesh && child.material) {
@@ -650,5 +766,24 @@ function toggleAutoRotate() {
 
 .toggle-checkbox:checked::before {
   transform: translateX(20px);
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  cursor: pointer;
+  border: 2px solid #1e293b;
+}
+
+.slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  cursor: pointer;
+  border: 2px solid #1e293b;
 }
 </style>

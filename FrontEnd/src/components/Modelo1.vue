@@ -12,7 +12,7 @@
       <div class="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700">
         <h3 class="text-xl font-semibold text-white mb-4 flex items-center">
           <svg class="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 00-2 2z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2-2h-2a2 2 0 00-2 2z"></path>
           </svg>
           Estado QEM
         </h3>
@@ -315,6 +315,19 @@
             </div>
           </div>
         </div>
+
+        <!-- Agregar después del div de comparación -->
+        <div class="mt-3 pt-3 border-t border-slate-600">
+          <button 
+            @click="downloadProcessedModel"
+            class="w-full py-2 px-4 bg-green-600 hover:bg-green-500 rounded-lg transition-colors text-white font-medium text-sm flex items-center justify-center"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-4-4m4 4l4-4m-4-4V3"></path>
+            </svg>
+            Descargar Modelo QEM
+          </button>
+        </div>
       </div>
 
       <div v-if="processedLoaded" class="mt-3 text-center text-sm text-slate-400">
@@ -349,6 +362,9 @@ const escala = ref(0.5)
 const wireframeMode = ref(false)
 const autoRotate = ref(false)
 
+// Agregar después de las otras variables reactivas
+const processedObjContent = ref('')
+
 // Variables Three.js para modelo original
 let originalScene, originalCamera, originalRenderer, originalControls, originalLoader
 let originalAnimationId = null
@@ -356,6 +372,24 @@ let originalAnimationId = null
 // Variables Three.js para modelo procesado
 let processedScene, processedCamera, processedRenderer, processedControls, processedLoader
 let processedAnimationId = null
+
+// Agregar esta función antes del onMounted
+function downloadProcessedModel() {
+  if (!processedObjContent.value || !currentFileName.value) {
+    alert('No hay modelo procesado para descargar')
+    return
+  }
+  
+  const blob = new Blob([processedObjContent.value], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `QEM_${currentFileName.value}`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
 
 onMounted(async () => {
   await nextTick()
@@ -553,44 +587,59 @@ function loadOriginalModel(objContent, fileName) {
 
   // Centrar y escalar
   const box = new THREE.Box3().setFromObject(object)
-  const center = box.getCenter(new THREE.Vector3())
-  object.position.sub(center)
+  const objectCenter = box.getCenter(new THREE.Vector3())
+  object.position.sub(objectCenter)
 
-  const size = box.getSize(new THREE.Vector3())
-  const maxDim = Math.max(size.x, size.y, size.z)
-  const scale = 2 / maxDim
-  object.scale.setScalar(scale)
+  const objectSize = box.getSize(new THREE.Vector3())
+  const objectMaxDim = Math.max(objectSize.x, objectSize.y, objectSize.z)
+  const objectScale = 2 / objectMaxDim
+  object.scale.setScalar(objectScale)
 
   originalScene.add(object)
   originalLoaded.value = true
   currentFileName.value = fileName
 
-  // Calcular estadísticas
-  let totalVertices = 0
-  let totalFaces = 0
+  // Replace the existing vertex counting section with:
+  // Parse OBJ content directly for accurate counts
+  const lines = objContent.split('\n')
+  let objVertices = 0
+  let objFaces = 0
 
-  object.traverse(child => {
-    if (child.isMesh && child.geometry) {
-      const position = child.geometry.getAttribute('position')
-      if (position) {
-        totalVertices += position.count
-        totalFaces += position.count / 3
-      }
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith('v ')) {
+      objVertices++
+    } else if (trimmed.startsWith('f ')) {
+      objFaces++
     }
-  })
-
-  originalStats.value = {
-    vertices: totalVertices,
-    faces: Math.round(totalFaces),
-    edges: Math.round(totalFaces * 3 / 2),
-    volume: size.x * size.y * size.z,
-    size: size
   }
 
-  // Ajustar cámara
-  const distance = maxDim * 2
-  originalCamera.position.set(distance, distance, distance)
-  originalControls.target.set(0, 0, 0)
+  originalStats.value = {
+    vertices: objVertices,
+    faces: objFaces,
+    edges: Math.round(objFaces * 3 / 2),
+    volume: objectSize.x * objectSize.y * objectSize.z,
+    size: objectSize
+  }
+
+  // Ajustar cámara automáticamente
+  const boundingBox = new THREE.Box3().setFromObject(object)
+  const center = boundingBox.getCenter(new THREE.Vector3())
+  const size = boundingBox.getSize(new THREE.Vector3())
+
+  // Calcular distancia óptima basada en el tamaño del objeto
+  const maxDim = Math.max(size.x, size.y, size.z)
+  const fov = originalCamera.fov * (Math.PI / 180) // Convertir a radianes
+  const distance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.2 // Factor de seguridad
+
+  // Posicionar cámara al frente del objeto
+  originalCamera.position.set(0, 0, distance)
+  originalCamera.lookAt(center)
+
+  // Configurar controles
+  originalControls.target.copy(center)
+  originalControls.minDistance = distance * 0.5
+  originalControls.maxDistance = distance * 3
   originalControls.update()
   
   // ✅ Render inmediato
@@ -618,6 +667,9 @@ async function processAndLoadModel(objContent) {
     }
     
     const data = await res.json()
+    // Después de: const data = await res.json()
+    // Agregar esta línea:
+    processedObjContent.value = data.obj
     mensaje.value = data.mensaje || 'Simplificación QEM completada'
 
     // Cargar modelo procesado
@@ -658,43 +710,58 @@ async function processAndLoadModel(objContent) {
 
     // Centrar y escalar
     const box = new THREE.Box3().setFromObject(processedObject)
-    const center = box.getCenter(new THREE.Vector3())
-    processedObject.position.sub(center)
+    const objectCenter = box.getCenter(new THREE.Vector3())
+    processedObject.position.sub(objectCenter)
 
-    const size = box.getSize(new THREE.Vector3())
-    const maxDim = Math.max(size.x, size.y, size.z)
-    const scale = 2 / maxDim
-    processedObject.scale.setScalar(scale)
+    const objectSize = box.getSize(new THREE.Vector3())
+    const objectMaxDim = Math.max(objectSize.x, objectSize.y, objectSize.z)
+    const objectScale = 2 / objectMaxDim
+    processedObject.scale.setScalar(objectScale)
 
     processedScene.add(processedObject)
     processedLoaded.value = true
 
-    // Calcular estadísticas del procesado
-    let totalVertices = 0
-    let totalFaces = 0
+    // Replace the processed vertex counting section with:
+    // Parse processed OBJ content directly for accurate counts
+    const processedLines = data.obj.split('\n')
+    let processedObjVertices = 0
+    let processedObjFaces = 0
 
-    processedObject.traverse(child => {
-      if (child.isMesh && child.geometry) {
-        const position = child.geometry.getAttribute('position')
-        if (position) {
-          totalVertices += position.count
-          totalFaces += position.count / 3
-        }
+    for (const line of processedLines) {
+      const trimmed = line.trim()
+      if (trimmed.startsWith('v ')) {
+        processedObjVertices++
+      } else if (trimmed.startsWith('f ')) {
+        processedObjFaces++
       }
-    })
-
-    processedStats.value = {
-      vertices: totalVertices,
-      faces: Math.round(totalFaces),
-      edges: Math.round(totalFaces * 3 / 2),
-      volume: size.x * size.y * size.z,
-      size: size
     }
 
-    // Ajustar cámara
-    const distance = maxDim * 2
-    processedCamera.position.set(distance, distance, distance)
-    processedControls.target.set(0, 0, 0)
+    processedStats.value = {
+      vertices: processedObjVertices,
+      faces: processedObjFaces,
+      edges: Math.round(processedObjFaces * 3 / 2),
+      volume: objectSize.x * objectSize.y * objectSize.z,
+      size: objectSize
+    }
+
+    // Ajustar cámara automáticamente
+    const boundingBox = new THREE.Box3().setFromObject(processedObject)
+    const center = boundingBox.getCenter(new THREE.Vector3())
+    const size = boundingBox.getSize(new THREE.Vector3())
+
+    // Calcular distancia óptima basada en el tamaño del objeto
+    const maxDim = Math.max(size.x, size.y, size.z)
+    const fov = processedCamera.fov * (Math.PI / 180) // Convertir a radianes
+    const distance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.2 // Factor de seguridad
+
+    // Posicionar cámara al frente del objeto
+    processedCamera.position.set(0, 0, distance)
+    processedCamera.lookAt(center)
+
+    // Configurar controles
+    processedControls.target.copy(center)
+    processedControls.minDistance = distance * 0.5
+    processedControls.maxDistance = distance * 3
     processedControls.update()
     
     // ✅ Render inmediato
@@ -749,18 +816,42 @@ function loadFromInput(event) {
 }
 
 function resetCameras() {
-  if (originalLoaded.value) {
-    originalCamera.position.set(4, 4, 4)
-    originalControls.target.set(0, 0, 0)
-    originalControls.update()
-    originalRenderer.render(originalScene, originalCamera)
+  if (originalLoaded.value && originalScene.children.length > 0) {
+    // Encontrar el objeto en la escena (excluyendo luces)
+    const meshObject = originalScene.children.find(child => child.type === 'Group' || child.type === 'Mesh')
+    if (meshObject) {
+      const boundingBox = new THREE.Box3().setFromObject(meshObject)
+      const center = boundingBox.getCenter(new THREE.Vector3())
+      const size = boundingBox.getSize(new THREE.Vector3())
+      const maxDim = Math.max(size.x, size.y, size.z)
+      const fov = originalCamera.fov * (Math.PI / 180)
+      const distance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.2
+      
+      originalCamera.position.set(0, 0, distance)
+      originalCamera.lookAt(center)
+      originalControls.target.copy(center)
+      originalControls.update()
+      originalRenderer.render(originalScene, originalCamera)
+    }
   }
   
-  if (processedLoaded.value) {
-    processedCamera.position.set(4, 4, 4)
-    processedControls.target.set(0, 0, 0)
-    processedControls.update()
-    processedRenderer.render(processedScene, processedCamera)
+  if (processedLoaded.value && processedScene.children.length > 0) {
+    // Encontrar el objeto en la escena (excluyendo luces)
+    const meshObject = processedScene.children.find(child => child.type === 'Group' || child.type === 'Mesh')
+    if (meshObject) {
+      const boundingBox = new THREE.Box3().setFromObject(meshObject)
+      const center = boundingBox.getCenter(new THREE.Vector3())
+      const size = boundingBox.getSize(new THREE.Vector3())
+      const maxDim = Math.max(size.x, size.y, size.z)
+      const fov = processedCamera.fov * (Math.PI / 180)
+      const distance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.2
+      
+      processedCamera.position.set(0, 0, distance)
+      processedCamera.lookAt(center)
+      processedControls.target.copy(center)
+      processedControls.update()
+      processedRenderer.render(processedScene, processedCamera)
+    }
   }
 }
 
