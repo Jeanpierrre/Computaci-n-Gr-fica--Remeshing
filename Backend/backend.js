@@ -12,18 +12,18 @@ app.use(cors({
   allowedHeaders: ['Content-Type'],
   credentials: true
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '20mb' }));
 
 app.post('/api/print', (req, res) => {
   const objData = req.body.obj;
-  const escala = req.body.escala || 1.0;
+  const targetVertices = req.body.targetVertices;
 
   const inputPath = 'temp_input.obj';
   const outputPath = 'temp_input_remesh.obj';
 
   fs.writeFileSync(inputPath, objData);
 
-  const comando = `final_proj.exe ${inputPath} ${outputPath} ${escala}`;
+  const comando = `final_proj.exe ${inputPath} ${outputPath} ${targetVertices}`;
   console.log('Ejecutando comando:', comando);
 
   exec(comando, (err, stdout, stderr) => {
@@ -50,17 +50,22 @@ app.post('/api/print', (req, res) => {
     console.log('final_proj.exe ejecutado correctamente');
   });
 });
-
 app.post('/api/voronoi', (req, res) => {
   const objData = req.body.obj;
   const nombre = req.body.nombre || 'modelo';
+  const modo = parseInt(req.body.modo); // debe ser 0, 1, 2, 3
+  const numCluster = parseInt(req.body.targetVertices) || 20000;
+
+  if (![0, 1, 2, 3].includes(modo)) {
+    return res.status(400).json({ error: 'Modo inválido. Debe ser 0, 1, 2 o 3.' });
+  }
 
   const inputPath = `${nombre}.obj`;
   const outputPath = `${nombre}_out.obj`;
 
   fs.writeFileSync(inputPath, objData);
 
-  const comando = `quadratic_remesh.exe ${inputPath} ${outputPath}`;
+  const comando = `quadratic_remesh.exe ${modo} ${inputPath} ${outputPath} ${numCluster}`;
   console.log('Ejecutando comando:', comando);
 
   exec(comando, (err, stdout, stderr) => {
@@ -77,6 +82,7 @@ app.post('/api/voronoi', (req, res) => {
       return res.status(500).json({ error: 'Error al leer archivo de salida' });
     }
 
+    // Limpieza de archivos temporales
     try { fs.unlinkSync(inputPath); } catch (e) { console.warn('No se pudo eliminar input'); }
     try { fs.unlinkSync(outputPath); } catch (e) { console.warn('No se pudo eliminar output'); }
 
@@ -85,9 +91,10 @@ app.post('/api/voronoi', (req, res) => {
       obj: salida
     });
 
-    console.log(' quadratic_remesh.exe ejecutado correctamente');
+    console.log('quadratic_remesh.exe ejecutado correctamente');
   });
 });
+
 
 app.listen(PORT, () => {
   console.log(`Servidor backend escuchando en http://localhost:${PORT}`);
