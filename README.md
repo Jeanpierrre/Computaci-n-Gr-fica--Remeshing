@@ -1,7 +1,9 @@
 # Remeshing 🔍
-## 📝 Descripción del Proyecto
-lorem
-## 🧑‍🤝‍🧑 Integrantes del Equipo
+## Descripción del Proyecto
+
+El remeshing es una técnica fundamental en el procesamiento de geometría tridimensional, cuyo objetivo principal es modificar o mejorar la estructura de una malla existente sin alterar significativamente su forma o características geométricas. Las mallas, estan compuestas por vértices, aristas y caras, se utilizan para representar superficies y volúmenes en una amplia variedad de aplicaciones como simulaciones físicas, gráficos por computadora, impresión 3D, entre otras. Es por ello que en este infrome se presentan dos modelos de remeshing que se basan en errores cuadricos y diagramas de voronoi.
+
+## Integrantes del Equipo
 
 Un equipo diverso y apasionado de estudiantes está detrás de este proyecto, listo para sumergirse en los algoritmos de remeshing y sus optimizaciones. Permítanos presentarnos:
 
@@ -11,7 +13,7 @@ Un equipo diverso y apasionado de estudiantes está detrás de este proyecto, li
 | [github.com/JeanPierre](https://github.com/Jeanpierrre) | [github.com/JLeandroJM](https://github.com/JLeandroJM) | [github.com/Gonzalo-Rod](https://github.com/Gonzalo-Rod) 
 
 
-## 📂 Estructura del Repositorio
+## Estructura del Repositorio
 
 - 📁 `backend`: En esta carpeta se encuentran los archivos necesarios para ejecutar el backend del proyecto
 - | 📄 `backend.js`: En esta carpeta se encuentran los documentos de texto que explican el proyecto.
