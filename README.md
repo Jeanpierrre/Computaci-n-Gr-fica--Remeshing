@@ -1,7 +1,7 @@
 # Remeshing 🔍
 ## Descripción del Proyecto
 
-El remeshing es una técnica fundamental en el procesamiento de geometría tridimensional, cuyo objetivo principal es modificar o mejorar la estructura de una malla existente sin alterar significativamente su forma o características geométricas. Las mallas, estan compuestas por vértices, aristas y caras, se utilizan para representar superficies y volúmenes en una amplia variedad de aplicaciones como simulaciones físicas, gráficos por computadora, impresión 3D, entre otras. Es por ello que en este infrome se presentan dos modelos de remeshing que se basan en errores cuadricos y diagramas de voronoi.
+El remeshing es una técnica fundamental en el procesamiento de geometría tridimensional, cuyo objetivo principal es modificar o mejorar la estructura de una malla existente sin alterar significativamente su forma o características geométricas. Las mallas, estan compuestas por vértices, aristas y caras, se utilizan para representar superficies y volúmenes en una amplia variedad de aplicaciones como simulaciones físicas, gráficos por computadora, impresión 3D, entre otras. Es por ello que en este proyecto se presentan dos modelos de remeshing que se basan en errores cuadricos y diagramas de voronoi.
 
 ## Integrantes del Equipo
 
