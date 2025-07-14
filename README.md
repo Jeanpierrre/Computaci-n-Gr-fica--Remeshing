@@ -32,6 +32,11 @@ El remeshing es una técnica fundamental en el procesamiento de geometría tridi
 - | 📁 `dependencies`
 - | 📄 `CMakeList.txt`
 - | 📄 `main.cpp`
+- 📁 `Voronoi`: En esta carpeta se encuentran los archivos del modelo de Voronoi
+- | 📁 `source`
+- | 📁 `dependencies`
+- | 📄 `CMakeList.txt`
+- | 📄 `main.cpp`
 
 ## Ejecucion del Proyecto
 
