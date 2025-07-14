@@ -1,4 +1,4 @@
-# Remeshing 🔍
+# Remeshing 3D 🔍
 ## Descripción del Proyecto
 
 El remeshing es una técnica fundamental en el procesamiento de geometría tridimensional, cuyo objetivo principal es modificar o mejorar la estructura de una malla existente sin alterar significativamente su forma o características geométricas. Las mallas, estan compuestas por vértices, aristas y caras, se utilizan para representar superficies y volúmenes en una amplia variedad de aplicaciones como simulaciones físicas, gráficos por computadora, impresión 3D, entre otras. Es por ello que en este proyecto se presentan dos modelos de remeshing que se basan en errores cuadricos y diagramas de voronoi.
@@ -18,31 +18,84 @@ El remeshing es una técnica fundamental en el procesamiento de geometría tridi
 - | 📄 `quadric_remeshing.exe`: Ejecutable del modelo de Quadric Error.
 - | 📄 `quadratic_remesh.exe`: Ejecutable del modelo de Voronoi.
 - 📁 `frontend`: En esta carpeta se encuentran los archivos necesarios para ejecutar el frontend del proyecto
-- | 📁 `public`
-- | 📁 `src`
-- | | 📄 `main.js`
-- | | 📄 `App.vue`
-- | | 📁 `components`
-- | 📄 `angle-visualizer.vue`
-- | 📄 `index.html`
-- | 📄 `package-lock.json`
-- | 📄 `package.json`
+- | 📁 `src`: Carpeta con los recursos para ejecutar la aplicacion web.
+- | | 📄 `main.js`: Archivo principal con logica de ejecucion de web.
+- | | 📄 `App.vue`: Archivo con la base de Vue
+- | | 📁 `components`: Componentes de Vue para iniciar la aplicacion web.
+- | 📄 `index.html`: Base HTML para inicializar web.
 - 📁 `QEM`: En esta carpeta se encuentran los archivos del modelo de Quadric Errors
-- | 📁 `src`
-- | 📁 `dependencies`
-- | 📄 `CMakeList.txt`
-- | 📄 `main.cpp`
+- | 📁 `src`: Carpeta donde se encuentran los archivos necesarios para hace le error cuadratico
+- | 📁 `dependencies`: Dependencias como librerias que se necesitan para ejecutar el remeshing
+- | 📄 `CMakeList.txt`: CMAKE para crear un ejecutable del quadratic remeshing
+- | 📄 `main.cpp`: Archivo principal para ejecuat el remeshing con Quadartic error
 - 📁 `Voronoi`: En esta carpeta se encuentran los archivos del modelo de Voronoi
-- | 📁 `source`
-- | 📁 `dependencies`
-- | 📄 `CMakeList.txt`
-- | 📄 `main.cpp`
+- | 📁 `source`: Archivo que contiene las clases de cada tipo de remeshing Voronoi
+- | 📁 `dependencies`: Dependencias como librerias que se necesitan para ejecutar el remeshing
+- | 📄 `CMakeList.txt`: CMAKE para crear un ejecutable del voronoi remeshing
+- | 📄 `main.cpp`: Archivo principal para ejecuat el remeshing con tecnicas de Voronoi
+
+# Remeshing (Backend)
+
+## Flujo de Ejecucion
+
+| Paso | Clase / Función clave                 | Breve descripción                                |
+|------|---------------------------------------|--------------------------------------------------|
+| 1    | `main.cpp`                            | Parsea CLI y crea el **Remesher** adecuado.      |
+| 2    | `Remesher::input()`                   | Carga `.obj` y rellena `VertexGroup`.            |
+| 3    | `VertexClustering::start()`           | Primera iteración de agrupamiento de caras.      |
+| 4    | `VertexClustering::build()`           | Reconstruye la malla reducida.                   |
+| 5    | `VertexClustering::output()`          | Escribe el resultado a disco.                    |
+| 6    | `VertexClustering::stat()`            | Imprime métricas (ángulo mínimo, etc.).          |
+
+## Clases auxiliares
+
+| Archivo                     | Responsabilidad                                                                               |
+|-----------------------------|-----------------------------------------------------------------------------------------------|
+| `UniformRemesher`           | Implementa la **Malla Homogénea** (densidad fija).                                            |
+| `AdaptiveRemesher`          | Implementa la **Malla Sensible a Curvatura** (densidad variable).                             |
+| `AnisoRemesher`             | Implementa la **Malla Tensorial** (métrica anisotrópica).                                     |
+| `AnisoQuadRemesher`         | Implementa la **Malla Cuádrica-Tensorial** (tensor + métrica cuádruple).                      |
+| `VertexClustering`          | Orquesta todo el proceso: parseo OBJ, clustering iterativo, reconstrucción y exportación.     |
+| `VCCluster (+derivadas)`    | Gestionan grupos de caras; calculan energía y centro según la métrica correspondiente.        |
+| `VCFace / VCEdge`           | Representan primitivas de la topología (caras y aristas).                                     |
+
+## Wiki
+Para más información sobre nuestra implementación, puedes visitar nuestra [Wiki](https://github.com/MatiasMaravi/BD2-Project2/wiki) donde encontrarás más detalles sobre el proyecto.
+
+
+## Compilación
+
+```bash
+git clone <repo-url>
+cd <repo>/build
+cmake ..          
+make -j$(nproc)    # genera el binario ./project_final
+
+```
 
 ## Ejecucion del Proyecto
 
-### Ejecución con Página Web
+Ejemplo para el AnisoRemesh
 
-#### Backend:
+```cpp
+{
+        AnisoRemesher remesher(
+            /* numCluster */ 1000,
+            /* ringLevel  */ 2,
+            /* validation */ false
+        );
+        remesher.input("../models/dragon.obj");
+        remesher.start();
+        remesher.build();
+        remesher.output("../output/dragon_anisotropico.obj");
+        remesher.stat();
+    }
+
+```
+
+# Ejecucion de Aplicación de Remeshing
+
+## Inicia Backend:
 
 1. Navega a la carpeta `Backend`:
    ```bash
@@ -57,7 +110,7 @@ El remeshing es una técnica fundamental en el procesamiento de geometría tridi
    node backend.js
    ```
 
-#### FrontEnd:
+## FrontEnd:
 
 1. Instala las dependencias necesarias:
    ```bash
@@ -89,7 +142,8 @@ El remeshing es una técnica fundamental en el procesamiento de geometría tridi
    cmake --build .
    ```
    Esto generará el archivo ejecutable `modelo.exe`.
-6. Para ejecutar el archivo ejecutable:
+   
+7. Para ejecutar el archivo ejecutable:
    ```bash
    modelo.exe input_obj output_obj
    ```
