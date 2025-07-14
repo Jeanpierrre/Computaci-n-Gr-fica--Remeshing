@@ -5,8 +5,6 @@ El remeshing es una técnica fundamental en el procesamiento de geometría tridi
 
 ## Integrantes del Equipo
 
-Un equipo diverso y apasionado de estudiantes está detrás de este proyecto, listo para sumergirse en los algoritmos de remeshing y sus optimizaciones. Permítanos presentarnos:
-
 |    Jean Pierre Sotomayor    |    Leandro Machaca    |    Gonzalo Rodriguez    |
 | ----------- | ----------- | ----------- |
 | ![](https://avatars.githubusercontent.com/u/85184643?v=4) | ![](https://avatars.githubusercontent.com/u/102132128?s=400&v=4) | ![](https://avatars.githubusercontent.com/u/85299734?v=4) |
