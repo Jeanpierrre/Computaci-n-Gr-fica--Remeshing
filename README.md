@@ -60,7 +60,7 @@ El remeshing es una técnica fundamental en el procesamiento de geometría tridi
 | `VCFace / VCEdge`           | Representan primitivas de la topología (caras y aristas).                                     |
 
 ## Wiki
-Para más información sobre nuestra implementación, puedes visitar nuestra [Wiki](https://github.com/MatiasMaravi/BD2-Project2/wiki) donde encontrarás más detalles sobre el proyecto.
+Para más información sobre nuestra implementación, puedes visitar nuestra [Wiki](https://github.com/Jeanpierrre/Computaci-n-Gr-fica--Remeshing/wiki/Abstract) donde encontrarás más detalles sobre el proyecto.
 
 
 ## Compilación
